@@ -1,35 +1,42 @@
-from hello_agents import SimpleAgent, HelloAgentsLLM
-from dotenv import load_dotenv
+"""Agent基类"""
+from abc import ABC, abstractmethod
+from typing import Optional, Any
+from .message import Message
+from .llm import HelloAgentsLLM
+from .config import Config
 
-# 加载环境变量
-load_dotenv()
-
-# 创建LLM实例 - 框架自动检测provider
-llm = HelloAgentsLLM()
-
-# 或手动指定provider（可选）
-# llm = HelloAgentsLLM(provider="modelscope")
-
-# 创建SimpleAgent
-agent = SimpleAgent(
-    name="AI助手",
-    llm=llm,
-    system_prompt="你是一个有用的AI助手"
-)
-
-# 基础对话
-response = agent.run("你好！请介绍一下自己")
-print(response)
-
-# 添加工具功能（可选）
-from hello_agents.tools import CalculatorTool
-calculator = CalculatorTool()
-# 需要实现7.4.1的MySimpleAgent进行调用，后续章节会支持此类调用方式
-# agent.add_tool(calculator)
-
-# 现在可以使用工具了
-response = agent.run("请帮我计算 2 + 3 * 4")
-print(response)
-
-# 查看对话历史
-print(f"历史消息数: {len(agent.get_history())}")
+class Agent(ABC):
+    """Agent基类"""
+    
+    def __init__(
+        self,
+        name: str,
+        llm: HelloAgentsLLM,
+        system_prompt: Optional[str] = None,
+        config: Optional[Config] = None
+    ):
+        self.name = name
+        self.llm = llm
+        self.system_prompt = system_prompt
+        self.config = config or Config()
+        self._history: list[Message] = []
+    
+    @abstractmethod
+    def run(self, input_text: str, **kwargs) -> str:
+        """运行Agent"""
+        pass
+    
+    def add_message(self, message: Message):
+        """添加消息到历史记录"""
+        self._history.append(message)
+    
+    def clear_history(self):
+        """清空历史记录"""
+        self._history.clear()
+    
+    def get_history(self) -> list[Message]:
+        """获取历史记录"""
+        return self._history.copy()
+    
+    def __str__(self) -> str:
+        return f"Agent(name={self.name}, provider={self.llm.provider})"
